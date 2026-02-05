@@ -332,6 +332,36 @@
             word-wrap: break-word;
         }
 
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #a5b4fc;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-link:hover {
+            background: rgba(102, 126, 234, 0.25);
+            border-color: rgba(102, 126, 234, 0.5);
+            color: #c7d2fe;
+        }
+
+        .card-link-icon {
+            flex-shrink: 0;
+        }
+
         .card-content-input {
             width: 100%;
             border: none;
@@ -410,6 +440,29 @@
         }
 
         .add-card-input::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        .add-card-link-input {
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 13px;
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            padding: 10px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-family: inherit;
+            margin-bottom: 12px;
+            transition: all 0.15s ease;
+        }
+
+        .add-card-link-input:focus {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .add-card-link-input::placeholder {
             color: rgba(255,255,255,0.3);
         }
 
@@ -671,15 +724,15 @@
         const defaultData = {
             columns: [
                 { id: 'col-1', title: 'To Do', cards: [
-                    { id: 'card-1', content: 'Research project requirements and gather specifications', labels: ['blue'] },
-                    { id: 'card-2', content: 'Create wireframes for the new dashboard', labels: ['purple'] }
+                    { id: 'card-1', content: 'Research project requirements and gather specifications', labels: ['blue'], link: 'https://jira.example.com/browse/PROJ-101' },
+                    { id: 'card-2', content: 'Create wireframes for the new dashboard', labels: ['purple'], link: '' }
                 ]},
                 { id: 'col-2', title: 'In Progress', cards: [
-                    { id: 'card-3', content: 'Build responsive landing page with animations', labels: ['green', 'blue'] }
+                    { id: 'card-3', content: 'Build responsive landing page with animations', labels: ['green', 'blue'], link: 'https://jira.example.com/browse/PROJ-102' }
                 ]},
                 { id: 'col-3', title: 'Review', cards: []},
                 { id: 'col-4', title: 'Done', cards: [
-                    { id: 'card-4', content: 'Setup development environment', labels: ['green'] }
+                    { id: 'card-4', content: 'Setup development environment', labels: ['green'], link: 'https://jira.example.com/browse/PROJ-100' }
                 ]}
             ]
         };
@@ -760,6 +813,7 @@
                 </button>
                 <div class="add-card-form" id="add-form-${column.id}" style="display: none;">
                     <textarea class="add-card-input" id="input-${column.id}" placeholder="What needs to be done?"></textarea>
+                    <input type="text" class="add-card-link-input" id="link-input-${column.id}" placeholder="Link (e.g., https://jira.example.com/PROJ-123)">
                     <div class="add-card-actions">
                         <button class="btn btn-primary" onclick="addCard('${column.id}')">Add Card</button>
                         <button class="btn btn-secondary" onclick="hideAddCardForm('${column.id}')">Cancel</button>
@@ -771,20 +825,29 @@
         }
 
         function createCardHTML(card, columnId) {
-            const labelsHtml = card.labels.map(label => 
+            const labelsHtml = card.labels.map(label =>
                 `<span class="label label-${label}" onclick="removeLabel('${card.id}', '${columnId}', '${label}')"></span>`
             ).join('');
 
+            const linkHtml = card.link ? `
+                <a href="${escapeHtml(card.link)}" class="card-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
+                    <span class="card-link-icon">🔗</span>
+                    <span>${escapeHtml(card.link)}</span>
+                </a>
+            ` : '';
+
             return `
-                <div class="card" 
-                     draggable="true" 
+                <div class="card"
+                     draggable="true"
                      data-card-id="${card.id}"
                      ondragstart="handleDragStart(event, '${card.id}', '${columnId}')"
                      ondragend="handleDragEnd(event)">
                     ${card.labels.length ? `<div class="card-labels">${labelsHtml}</div>` : ''}
                     <div class="card-content" onclick="editCard('${card.id}', '${columnId}')">${escapeHtml(card.content)}</div>
+                    ${linkHtml}
                     <div class="card-footer">
                         <button class="icon-btn" onclick="showLabelPicker(event, '${card.id}', '${columnId}')" title="Add label">🏷</button>
+                        <button class="icon-btn" onclick="editCardLink('${card.id}', '${columnId}')" title="Edit link">🔗</button>
                         <button class="icon-btn delete" onclick="deleteCard('${card.id}', '${columnId}')" title="Delete">✕</button>
                     </div>
                 </div>
@@ -898,18 +961,22 @@
             document.getElementById(`add-form-${columnId}`).style.display = 'none';
             document.querySelector(`[data-column-id="${columnId}"] .add-card-btn`).style.display = 'flex';
             document.getElementById(`input-${columnId}`).value = '';
+            document.getElementById(`link-input-${columnId}`).value = '';
         }
 
         function addCard(columnId) {
             const input = document.getElementById(`input-${columnId}`);
+            const linkInput = document.getElementById(`link-input-${columnId}`);
             const content = input.value.trim();
+            const link = linkInput.value.trim();
             if (!content) return;
 
             const column = boardData.columns.find(c => c.id === columnId);
             column.cards.push({
                 id: generateId(),
                 content: content,
-                labels: []
+                labels: [],
+                link: link || ''
             });
 
             saveData();
@@ -953,6 +1020,19 @@
             column.cards = column.cards.filter(c => c.id !== cardId);
             saveData();
             renderBoard();
+        }
+
+        function editCardLink(cardId, columnId) {
+            event.stopPropagation();
+            const column = boardData.columns.find(c => c.id === columnId);
+            const card = column.cards.find(c => c.id === cardId);
+            const currentLink = card.link || '';
+            const newLink = prompt('Enter link (e.g., Jira URL):', currentLink);
+            if (newLink !== null) {
+                card.link = newLink.trim();
+                saveData();
+                renderBoard();
+            }
         }
 
         // Labels
@@ -1152,6 +1232,7 @@
                                 throw new Error('Invalid card structure');
                             }
                             if (!card.labels) card.labels = [];
+                            if (!card.link) card.link = '';
                         }
                     }
 
