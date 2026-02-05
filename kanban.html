@@ -829,10 +829,11 @@
                 `<span class="label label-${label}" onclick="removeLabel('${card.id}', '${columnId}', '${label}')"></span>`
             ).join('');
 
+            const linkDisplay = getLinkDisplayText(card.link);
             const linkHtml = card.link ? `
                 <a href="${escapeHtml(card.link)}" class="card-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
                     <span class="card-link-icon">🔗</span>
-                    <span>${escapeHtml(card.link)}</span>
+                    <span>${escapeHtml(linkDisplay)}</span>
                 </a>
             ` : '';
 
@@ -852,6 +853,15 @@
                     </div>
                 </div>
             `;
+        }
+
+        function getLinkDisplayText(link) {
+            if (!link) return '';
+            // Extract ticket ID from URLs like /browse/PROJ-123 or /issues/PROJ-123
+            const match = link.match(/\/(?:browse|issues)\/([A-Za-z0-9_-]+)(?:\?|$|#)/i)
+                       || link.match(/\/(?:browse|issues)\/([A-Za-z0-9_-]+)$/i);
+            if (match) return match[1];
+            return link;
         }
 
         function escapeHtml(text) {
