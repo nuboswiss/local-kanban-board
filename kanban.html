@@ -281,8 +281,8 @@
             background: rgba(255,255,255,0.07);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
             cursor: grab;
             transition: all 0.2s ease;
             position: relative;
@@ -304,7 +304,7 @@
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .label {
@@ -336,12 +336,12 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            margin-top: 10px;
-            padding: 6px 10px;
+            margin-top: 8px;
+            padding: 4px 8px;
             background: rgba(102, 126, 234, 0.15);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             color: #a5b4fc;
             text-decoration: none;
@@ -376,18 +376,16 @@
         }
 
         .card-footer {
-            display: flex;
+            display: none;
             justify-content: flex-end;
             gap: 4px;
-            margin-top: 12px;
-            padding-top: 12px;
+            margin-top: 10px;
+            padding-top: 10px;
             border-top: 1px solid rgba(255,255,255,0.06);
-            opacity: 0;
-            transition: opacity 0.15s ease;
         }
 
         .card:hover .card-footer {
-            opacity: 1;
+            display: flex;
         }
 
         /* Add Card */
