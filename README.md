@@ -6,6 +6,7 @@ A lightweight, browser-based task management application that runs entirely in a
 
 - **Column Management** - Create, rename, reorder, and delete workflow columns
 - **Task Cards** - Add, edit, and delete task cards with drag-and-drop support
+- **External Links** - Attach links to cards (e.g., Jira tickets, GitHub issues)
 - **Color Labels** - Organize tasks with color-coded labels (Red, Orange, Green, Blue, Purple)
 - **Drag and Drop** - Move cards between columns with native HTML5 drag-and-drop
 - **Local Storage** - Your board persists automatically in browser localStorage
@@ -46,6 +47,8 @@ Then visit `http://localhost:8000/kanban.html`
 | Delete card | Hover over card, click trash icon |
 | Add label | Hover over card, click label icon |
 | Remove label | Click on an existing label to remove it |
+| Add/edit link | Hover over card, click link icon (🔗) |
+| Open link | Click the link displayed on the card |
 
 ### Data Management
 | Action | How To |
@@ -75,7 +78,8 @@ Then visit `http://localhost:8000/kanban.html`
         {
           "id": "unique-id",
           "content": "Task description",
-          "labels": ["red", "blue"]
+          "labels": ["red", "blue"],
+          "link": "https://jira.example.com/browse/PROJ-123"
         }
       ]
     }
