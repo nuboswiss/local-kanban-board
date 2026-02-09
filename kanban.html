@@ -149,6 +149,18 @@
             display: flex;
             flex-direction: column;
             max-height: calc(100vh - 140px);
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .column.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .column.drag-over {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
         }
 
         .column-header {
@@ -164,32 +176,6 @@
             align-items: center;
             gap: 8px;
             flex: 1;
-        }
-
-        .column-move-btns {
-            display: flex;
-            gap: 2px;
-        }
-
-        .column-move-btn {
-            background: rgba(255,255,255,0.06);
-            border: none;
-            cursor: pointer;
-            padding: 6px 8px;
-            border-radius: 6px;
-            color: rgba(255,255,255,0.4);
-            font-size: 10px;
-            transition: all 0.15s ease;
-        }
-
-        .column-move-btn:hover:not(:disabled) {
-            background: rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.8);
-        }
-
-        .column-move-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
         }
 
         .column-title {
@@ -490,9 +476,30 @@
         }
 
         .drop-zone.active {
-            background: rgba(102, 126, 234, 0.15);
-            border: 2px dashed rgba(102, 126, 234, 0.5);
-            min-height: 80px;
+            background: rgba(102, 126, 234, 0.1);
+            min-height: 40px;
+        }
+
+        .card.drop-above::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .card.drop-below::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+            border-radius: 2px;
         }
 
         /* Label Picker */
@@ -738,6 +745,7 @@
         let boardData;
         let draggedCard = null;
         let draggedCardColumn = null;
+        let draggedColumn = null;
 
         // Initialize
         function init() {
@@ -781,18 +789,18 @@
             const colEl = document.createElement('div');
             colEl.className = 'column';
             colEl.dataset.columnId = column.id;
+            colEl.draggable = true;
+            colEl.ondragstart = (e) => handleColumnDragStart(e, column.id);
+            colEl.ondragend = handleColumnDragEnd;
+            colEl.ondragover = (e) => handleColumnDragOver(e, column.id);
+            colEl.ondragleave = handleColumnDragLeave;
+            colEl.ondrop = (e) => handleColumnDrop(e, column.id);
 
-            const isFirst = index === 0;
-            const isLast = index === boardData.columns.length - 1;
             const cardCount = column.cards.length;
 
             colEl.innerHTML = `
                 <div class="column-header">
                     <div class="column-header-left">
-                        <div class="column-move-btns">
-                            <button class="column-move-btn" onclick="moveColumn('${column.id}', -1)" ${isFirst ? 'disabled' : ''} title="Move left">◄</button>
-                            <button class="column-move-btn" onclick="moveColumn('${column.id}', 1)" ${isLast ? 'disabled' : ''} title="Move right">►</button>
-                        </div>
                         <span class="column-title" onclick="editColumnTitle('${column.id}')">${escapeHtml(column.title)}</span>
                         <span class="column-card-count">${cardCount}</span>
                     </div>
@@ -839,8 +847,12 @@
                 <div class="card"
                      draggable="true"
                      data-card-id="${card.id}"
+                     data-column-id="${columnId}"
                      ondragstart="handleDragStart(event, '${card.id}', '${columnId}')"
-                     ondragend="handleDragEnd(event)">
+                     ondragend="handleDragEnd(event)"
+                     ondragover="handleCardDragOver(event, '${card.id}', '${columnId}')"
+                     ondragleave="handleCardDragLeave(event)"
+                     ondrop="handleCardDrop(event, '${card.id}', '${columnId}')">
                     ${card.labels.length ? `<div class="card-labels">${labelsHtml}</div>` : ''}
                     <div class="card-content" onclick="editCard('${card.id}', '${columnId}')">${escapeHtml(card.content)}</div>
                     ${linkHtml}
@@ -944,16 +956,50 @@
             renderBoard();
         }
 
-        function moveColumn(columnId, direction) {
-            const currentIndex = boardData.columns.findIndex(c => c.id === columnId);
-            const newIndex = currentIndex + direction;
-            
-            if (newIndex < 0 || newIndex >= boardData.columns.length) return;
-            
-            const temp = boardData.columns[currentIndex];
-            boardData.columns[currentIndex] = boardData.columns[newIndex];
-            boardData.columns[newIndex] = temp;
-            
+        // Column drag and drop
+        function handleColumnDragStart(event, columnId) {
+            // Prevent column drag when clicking on interactive elements
+            if (event.target.closest('.icon-btn, .column-title, input, button')) {
+                event.preventDefault();
+                return;
+            }
+            draggedColumn = columnId;
+            event.target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('type', 'column');
+        }
+
+        function handleColumnDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            draggedColumn = null;
+        }
+
+        function handleColumnDragOver(event, columnId) {
+            event.preventDefault();
+            if (!draggedColumn || draggedColumn === columnId) return;
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleColumnDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleColumnDrop(event, targetColumnId) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (!draggedColumn || draggedColumn === targetColumnId) return;
+
+            const sourceIndex = boardData.columns.findIndex(c => c.id === draggedColumn);
+            const targetIndex = boardData.columns.findIndex(c => c.id === targetColumnId);
+
+            const [column] = boardData.columns.splice(sourceIndex, 1);
+            boardData.columns.splice(targetIndex, 0, column);
+
+            draggedColumn = null;
             saveData();
             renderBoard();
         }
@@ -1140,13 +1186,14 @@
 
         function handleDragEnd(event) {
             event.target.classList.remove('dragging');
-            document.querySelectorAll('.drop-zone').forEach(zone => {
-                zone.classList.remove('active');
+            document.querySelectorAll('.drop-zone, .drop-above, .drop-below').forEach(el => {
+                el.classList.remove('active', 'drop-zone', 'drop-above', 'drop-below');
             });
         }
 
         function handleDragOver(event) {
             event.preventDefault();
+            if (!draggedCard) return;
             event.currentTarget.classList.add('active');
             event.currentTarget.classList.add('drop-zone');
         }
@@ -1168,9 +1215,73 @@
             const cardIndex = sourceColumn.cards.findIndex(c => c.id === draggedCard);
             const [card] = sourceColumn.cards.splice(cardIndex, 1);
 
-            // Add to target
+            // Add to end of target column
             const targetColumn = boardData.columns.find(c => c.id === targetColumnId);
             targetColumn.cards.push(card);
+
+            draggedCard = null;
+            draggedCardColumn = null;
+
+            saveData();
+            renderBoard();
+        }
+
+        // Card-to-card drag for reordering
+        function handleCardDragOver(event, targetCardId, columnId) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!draggedCard || draggedCard === targetCardId) return;
+
+            const card = event.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+
+            // Clear previous indicators
+            document.querySelectorAll('.drop-above, .drop-below').forEach(el => {
+                el.classList.remove('drop-above', 'drop-below');
+            });
+
+            if (event.clientY < midY) {
+                card.classList.add('drop-above');
+                card.classList.remove('drop-below');
+            } else {
+                card.classList.add('drop-below');
+                card.classList.remove('drop-above');
+            }
+        }
+
+        function handleCardDragLeave(event) {
+            event.currentTarget.classList.remove('drop-above', 'drop-below');
+        }
+
+        function handleCardDrop(event, targetCardId, targetColumnId) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const card = event.currentTarget;
+            const dropAbove = card.classList.contains('drop-above');
+            card.classList.remove('drop-above', 'drop-below');
+
+            if (!draggedCard || draggedCard === targetCardId) return;
+
+            // Remove card from source
+            const sourceColumn = boardData.columns.find(c => c.id === draggedCardColumn);
+            const sourceIndex = sourceColumn.cards.findIndex(c => c.id === draggedCard);
+            const [movedCard] = sourceColumn.cards.splice(sourceIndex, 1);
+
+            // Insert at target position
+            const targetColumn = boardData.columns.find(c => c.id === targetColumnId);
+            let targetIndex = targetColumn.cards.findIndex(c => c.id === targetCardId);
+
+            // Adjust index if dropping below
+            if (!dropAbove) targetIndex++;
+
+            // Adjust if moving within same column and source was before target
+            if (draggedCardColumn === targetColumnId && sourceIndex < targetIndex) {
+                targetIndex--;
+            }
+
+            targetColumn.cards.splice(targetIndex, 0, movedCard);
 
             draggedCard = null;
             draggedCardColumn = null;
