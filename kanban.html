@@ -805,6 +805,7 @@
                         <span class="column-card-count">${cardCount}</span>
                     </div>
                     <div class="column-actions">
+                        <button class="icon-btn" onclick="clearColumn('${column.id}')" title="Clear all cards">🗑</button>
                         <button class="icon-btn delete" onclick="deleteColumn('${column.id}')" title="Delete column">✕</button>
                     </div>
                 </div>
@@ -952,6 +953,15 @@
         function deleteColumn(columnId) {
             if (!confirm('Delete this column and all its cards?')) return;
             boardData.columns = boardData.columns.filter(c => c.id !== columnId);
+            saveData();
+            renderBoard();
+        }
+
+        function clearColumn(columnId) {
+            const column = boardData.columns.find(c => c.id === columnId);
+            if (column.cards.length === 0) return;
+            if (!confirm(`Clear all ${column.cards.length} card(s) from "${column.title}"?`)) return;
+            column.cards = [];
             saveData();
             renderBoard();
         }
