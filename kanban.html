@@ -759,12 +759,46 @@
             border-radius: 8px;
         }
 
-        .jira-section-label {
-            font-size: 11px;
+        .jira-section-label {            font-size: 11px;
             color: rgba(255,255,255,0.35);
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Settings Modal */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .settings-row {
+            margin-bottom: 16px;
+        }
+
+        .settings-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 6px;
+        }
+
+        .settings-hint {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 6px;
+            line-height: 1.5;
         }
 
         /* Jira card metadata */
@@ -845,6 +879,9 @@
                 <span class="btn-icon">🔷</span> Import Jira
                 <input type="file" id="jiraImportInput" accept=".csv" onchange="importJiraCSV(event)" style="display: none;">
             </label>
+            <button class="btn btn-ghost" onclick="showSettingsModal()">
+                <span class="btn-icon">⚙</span> Settings
+            </button>
             <button class="btn btn-danger" onclick="clearBoard()">
                 <span class="btn-icon">×</span> Clear
             </button>
@@ -873,6 +910,27 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="hideClearConfirmModal()">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmClearBoard()">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" onclick="handleSettingsOverlayClick(event)">
+        <div class="modal modal-wide">
+            <h2>Settings</h2>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Jira Integration</div>
+                <div class="settings-row">
+                    <label class="settings-label" for="settingsJiraHost">Host URL</label>
+                    <input type="url" id="settingsJiraHost" placeholder="https://yourcompany.atlassian.net">
+                    <div class="settings-hint">Base URL of your Jira instance. When set, issue keys on cards become clickable links (e.g. PROJ-123 → host/browse/PROJ-123).</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideSettingsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettingsFromModal()">Save</button>
             </div>
         </div>
     </div>
@@ -912,8 +970,44 @@
         let draggedCardColumn = null;
         let draggedColumn = null;
 
+        let appSettings = { jiraHost: '' };
+
+        function loadSettings() {
+            const saved = localStorage.getItem('kanbanSettings');
+            if (saved) {
+                try { appSettings = Object.assign(appSettings, JSON.parse(saved)); } catch(e) {}
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('kanbanSettings', JSON.stringify(appSettings));
+        }
+
+        function showSettingsModal() {
+            document.getElementById('settingsJiraHost').value = appSettings.jiraHost || '';
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('settingsJiraHost').focus();
+        }
+
+        function hideSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function handleSettingsOverlayClick(event) {
+            if (event.target.classList.contains('modal-overlay')) hideSettingsModal();
+        }
+
+        function saveSettingsFromModal() {
+            const raw = document.getElementById('settingsJiraHost').value.trim();
+            appSettings.jiraHost = raw.replace(/\/$/, '');
+            saveSettings();
+            renderBoard();
+            hideSettingsModal();
+        }
+
         // Initialize
         function init() {
+            loadSettings();
             loadData();
             renderBoard();
         }
@@ -1014,7 +1108,13 @@
                 const { key, issueType, priority, assignee, dueDate, epicName } = card.jira;
                 const priorityClass = (priority || '').toLowerCase().replace(/[^a-z]/g, '');
                 const badges = [];
-                if (key) badges.push(`<span class="jira-key">${escapeHtml(key)}</span>`);
+                if (key) {
+                    const host = appSettings.jiraHost;
+                    const keyHtml = host
+                        ? `<a href="${escapeHtml(host)}/browse/${escapeHtml(key)}" class="jira-key" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHtml(key)}</a>`
+                        : `<span class="jira-key">${escapeHtml(key)}</span>`;
+                    badges.push(keyHtml);
+                }
                 if (issueType) badges.push(`<span class="jira-type">${escapeHtml(issueType)}</span>`);
                 if (priority) badges.push(`<span class="jira-priority ${priorityClass}">${escapeHtml(priority)}</span>`);
                 const details = [];
