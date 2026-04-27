@@ -163,6 +163,58 @@
             box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
         }
 
+        /* Collapsed column */
+        .column.collapsed {
+            min-width: 52px;
+            max-width: 52px;
+            padding: 12px 8px;
+            align-items: center;
+            transition: min-width 0.2s ease, max-width 0.2s ease;
+        }
+
+        .column.collapsed .column-header,
+        .column.collapsed .cards-container,
+        .column.collapsed .add-card-btn,
+        .column.collapsed .add-card-form {
+            display: none;
+        }
+
+        .column-collapsed-body {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            width: 100%;
+        }
+
+        .column.collapsed .column-collapsed-body {
+            display: flex;
+        }
+
+        .column-collapsed-title {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 0.3px;
+            max-height: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: default;
+        }
+
+        .column-collapsed-count {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.45);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 7px;
+            border-radius: 12px;
+        }
+
         .column-header {
             display: flex;
             justify-content: space-between;
@@ -1046,7 +1098,7 @@
 
         function createColumnElement(column, index) {
             const colEl = document.createElement('div');
-            colEl.className = 'column';
+            colEl.className = 'column' + (column.collapsed ? ' collapsed' : '');
             colEl.dataset.columnId = column.id;
             colEl.draggable = true;
             colEl.ondragstart = (e) => handleColumnDragStart(e, column.id);
@@ -1064,12 +1116,18 @@
                         <span class="column-card-count">${cardCount}</span>
                     </div>
                     <div class="column-actions">
+                        <button class="icon-btn" onclick="toggleColumnCollapse('${column.id}')" title="Hide column">«</button>
                         <button class="icon-btn" onclick="clearColumn('${column.id}')" title="Clear all cards">🗑</button>
                         <button class="icon-btn delete" onclick="deleteColumn('${column.id}')" title="Delete column">✕</button>
                     </div>
                 </div>
-                <div class="cards-container" 
-                     ondragover="handleDragOver(event)" 
+                <div class="column-collapsed-body">
+                    <button class="icon-btn" onclick="toggleColumnCollapse('${column.id}')" title="Show column" style="font-size:16px;">»</button>
+                    <span class="column-collapsed-title">${escapeHtml(column.title)}</span>
+                    <span class="column-collapsed-count">${cardCount}</span>
+                </div>
+                <div class="cards-container"
+                     ondragover="handleDragOver(event)"
                      ondrop="handleDrop(event, '${column.id}')"
                      ondragleave="handleDragLeave(event)">
                     ${column.cards.map(card => createCardHTML(card, column.id)).join('')}
@@ -1088,6 +1146,14 @@
             `;
 
             return colEl;
+        }
+
+        function toggleColumnCollapse(columnId) {
+            const col = boardData.columns.find(c => c.id === columnId);
+            if (!col) return;
+            col.collapsed = !col.collapsed;
+            saveData();
+            renderBoard();
         }
 
         function createCardHTML(card, columnId) {
