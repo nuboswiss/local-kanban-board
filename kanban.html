@@ -989,7 +989,7 @@
 
         function handleColumnDragOver(event, columnId) {
             event.preventDefault();
-            if (!draggedColumn || draggedColumn === columnId) return;
+            if (!draggedColumn || draggedColumn === columnId || draggedCard) return;
             event.currentTarget.classList.add('drag-over');
         }
 
@@ -1001,7 +1001,7 @@
             event.preventDefault();
             event.currentTarget.classList.remove('drag-over');
 
-            if (!draggedColumn || draggedColumn === targetColumnId) return;
+            if (!draggedColumn || draggedColumn === targetColumnId || draggedCard) return;
 
             const sourceIndex = boardData.columns.findIndex(c => c.id === draggedColumn);
             const targetIndex = boardData.columns.findIndex(c => c.id === targetColumnId);
@@ -1192,6 +1192,7 @@
             event.target.classList.add('dragging');
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('type', 'card');
+            event.stopPropagation();
         }
 
         function handleDragEnd(event) {
