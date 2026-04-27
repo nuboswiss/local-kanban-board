@@ -673,6 +673,155 @@
                 max-width: 280px;
             }
         }
+
+        /* Jira Import Modal */
+        .modal-wide { max-width: 620px !important; }
+
+        .jira-preview-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .jira-stat {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px 16px;
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .jira-stat-number {
+            font-size: 22px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .jira-stat-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.45);
+            margin-top: 4px;
+        }
+
+        .jira-column-list {
+            margin-bottom: 16px;
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .jira-column-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .jira-column-name { color: rgba(255,255,255,0.85); font-weight: 500; flex: 1; }
+        .jira-column-count { color: rgba(255,255,255,0.35); font-size: 12px; white-space: nowrap; }
+
+        .jira-column-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .jira-column-badge.new {
+            background: rgba(102,126,234,0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(102,126,234,0.3);
+        }
+
+        .jira-column-badge.existing {
+            background: rgba(34,197,94,0.15);
+            color: #86efac;
+            border: 1px solid rgba(34,197,94,0.2);
+        }
+
+        .jira-skip-info {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+        }
+
+        .jira-section-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Jira card metadata */
+        .card-jira-meta {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .jira-key {
+            font-size: 11px;
+            font-weight: 600;
+            color: #a5b4fc;
+            background: rgba(102,126,234,0.15);
+            border: 1px solid rgba(102,126,234,0.25);
+            border-radius: 4px;
+            padding: 2px 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .jira-type {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .jira-priority {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .jira-priority.critical, .jira-priority.highest { color: #fca5a5; background: rgba(239,68,68,0.15); }
+        .jira-priority.high { color: #fdba74; background: rgba(249,115,22,0.15); }
+        .jira-priority.medium { color: #93c5fd; background: rgba(59,130,246,0.15); }
+        .jira-priority.low { color: #86efac; background: rgba(34,197,94,0.15); }
+        .jira-priority.lowest { color: #d8b4fe; background: rgba(168,85,247,0.15); }
+
+        .card-jira-details {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 2px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .jira-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
     </style>
 </head>
 <body>
@@ -691,6 +840,10 @@
             <label class="btn btn-ghost">
                 <span class="btn-icon">↑</span> Import
                 <input type="file" id="importInput" accept=".txt,.json" onchange="importBoard(event)" style="display: none;">
+            </label>
+            <label class="btn btn-ghost">
+                <span class="btn-icon">🔷</span> Import Jira
+                <input type="file" id="jiraImportInput" accept=".csv" onchange="importJiraCSV(event)" style="display: none;">
             </label>
             <button class="btn btn-danger" onclick="clearBoard()">
                 <span class="btn-icon">×</span> Clear
@@ -720,6 +873,18 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="hideClearConfirmModal()">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmClearBoard()">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jira Import Preview Modal -->
+    <div class="modal-overlay" id="jiraImportModal" onclick="handleJiraModalOverlayClick(event)">
+        <div class="modal modal-wide">
+            <h2>Import from Jira CSV</h2>
+            <div id="jiraPreviewContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideJiraImportModal()">Cancel</button>
+                <button class="btn btn-primary" id="jiraImportConfirmBtn" onclick="confirmJiraImport()">Import</button>
             </div>
         </div>
     </div>
@@ -844,6 +1009,26 @@
                 </a>
             ` : '';
 
+            let jiraMetaHtml = '';
+            if (card.jira) {
+                const { key, issueType, priority, assignee, dueDate, epicName } = card.jira;
+                const priorityClass = (priority || '').toLowerCase().replace(/[^a-z]/g, '');
+                const badges = [];
+                if (key) badges.push(`<span class="jira-key">${escapeHtml(key)}</span>`);
+                if (issueType) badges.push(`<span class="jira-type">${escapeHtml(issueType)}</span>`);
+                if (priority) badges.push(`<span class="jira-priority ${priorityClass}">${escapeHtml(priority)}</span>`);
+                const details = [];
+                if (assignee) details.push(`<span class="jira-detail-item">👤 ${escapeHtml(assignee)}</span>`);
+                if (dueDate) details.push(`<span class="jira-detail-item">📅 ${escapeHtml(dueDate)}</span>`);
+                if (epicName) details.push(`<span class="jira-detail-item">⚡ ${escapeHtml(epicName)}</span>`);
+                if (badges.length || details.length) {
+                    jiraMetaHtml = `<div class="card-jira-meta">
+                        ${badges.join('')}
+                        ${details.length ? `<div class="card-jira-details">${details.join('')}</div>` : ''}
+                    </div>`;
+                }
+            }
+
             return `
                 <div class="card"
                      draggable="true"
@@ -857,6 +1042,7 @@
                     ${card.labels.length ? `<div class="card-labels">${labelsHtml}</div>` : ''}
                     <div class="card-content" onclick="editCard('${card.id}', '${columnId}')">${escapeHtml(card.content)}</div>
                     ${linkHtml}
+                    ${jiraMetaHtml}
                     <div class="card-footer">
                         <button class="icon-btn" onclick="showLabelPicker(event, '${card.id}', '${columnId}')" title="Add label">🏷</button>
                         <button class="icon-btn" onclick="editCardLink('${card.id}', '${columnId}')" title="Edit link">🔗</button>
@@ -1377,6 +1563,219 @@
             };
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        // ---- Jira CSV Import ----
+        let jiraPendingRows = null;
+
+        function parseCSV(text) {
+            const rows = [];
+            let i = 0;
+            const n = text.length;
+
+            function parseField() {
+                if (i < n && text[i] === '"') {
+                    i++;
+                    let field = '';
+                    while (i < n) {
+                        if (text[i] === '"' && text[i + 1] === '"') { field += '"'; i += 2; }
+                        else if (text[i] === '"') { i++; break; }
+                        else { field += text[i++]; }
+                    }
+                    return field;
+                }
+                let field = '';
+                while (i < n && text[i] !== ',' && text[i] !== '\n' && text[i] !== '\r') {
+                    field += text[i++];
+                }
+                return field;
+            }
+
+            function parseLine() {
+                const fields = [];
+                while (i < n && text[i] !== '\n' && text[i] !== '\r') {
+                    fields.push(parseField());
+                    if (i < n && text[i] === ',') i++;
+                }
+                if (i < n && text[i] === '\r') i++;
+                if (i < n && text[i] === '\n') i++;
+                return fields;
+            }
+
+            const headers = parseLine().map(h => h.trim());
+            while (i < n) {
+                const fields = parseLine();
+                if (fields.every(f => f.trim() === '')) continue;
+                const row = {};
+                headers.forEach((h, idx) => { row[h] = (fields[idx] || '').trim(); });
+                rows.push(row);
+            }
+            return rows;
+        }
+
+        function getJiraField(row, ...names) {
+            for (const name of names) {
+                const key = Object.keys(row).find(k => k.toLowerCase() === name.toLowerCase());
+                if (key !== undefined && row[key] !== '') return row[key];
+            }
+            return '';
+        }
+
+        function priorityToLabel(priority) {
+            const p = (priority || '').toLowerCase();
+            if (p === 'critical' || p === 'highest') return 'red';
+            if (p === 'high') return 'orange';
+            if (p === 'medium') return 'blue';
+            if (p === 'low') return 'green';
+            if (p === 'lowest') return 'purple';
+            return null;
+        }
+
+        function getExistingJiraKeys() {
+            const keys = new Set();
+            boardData.columns.forEach(col => {
+                col.cards.forEach(card => { if (card.jira && card.jira.key) keys.add(card.jira.key); });
+            });
+            return keys;
+        }
+
+        function importJiraCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = '';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const rows = parseCSV(e.target.result);
+                    if (rows.length === 0) { alert('The CSV file appears to be empty.'); return; }
+                    const sample = rows[0];
+                    const hasStatus = Object.keys(sample).some(k => k.toLowerCase() === 'status');
+                    const hasSummary = Object.keys(sample).some(k => k.toLowerCase() === 'summary');
+                    if (!hasStatus || !hasSummary) {
+                        alert('Could not find required "Status" and "Summary" columns. Please ensure this is a valid Jira CSV export.');
+                        return;
+                    }
+                    jiraPendingRows = rows;
+                    showJiraPreviewModal(rows);
+                } catch (err) {
+                    alert('Error reading CSV: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showJiraPreviewModal(rows) {
+            const existingKeys = getExistingJiraKeys();
+            const columnMap = {};
+            let skipped = 0;
+
+            rows.forEach(row => {
+                const key = getJiraField(row, 'Issue key', 'Issue Key');
+                if (key && existingKeys.has(key)) { skipped++; return; }
+                const summary = getJiraField(row, 'Summary');
+                if (!summary) return;
+                const status = getJiraField(row, 'Status') || 'No Status';
+                columnMap[status] = (columnMap[status] || 0) + 1;
+            });
+
+            const totalNew = Object.values(columnMap).reduce((a, b) => a + b, 0);
+            const existingTitles = new Set(boardData.columns.map(c => c.title.toLowerCase()));
+
+            let columnRowsHTML = Object.entries(columnMap).map(([status, count]) => {
+                const isNew = !existingTitles.has(status.toLowerCase());
+                const badge = isNew
+                    ? `<span class="jira-column-badge new">New column</span>`
+                    : `<span class="jira-column-badge existing">Existing</span>`;
+                return `<div class="jira-column-row">
+                    <span class="jira-column-name">${escapeHtml(status)}</span>
+                    <span class="jira-column-count">${count} card${count !== 1 ? 's' : ''}</span>
+                    ${badge}
+                </div>`;
+            }).join('');
+
+            if (!columnRowsHTML) {
+                columnRowsHTML = `<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:8px 0;">No new items to import.</div>`;
+            }
+
+            const skipHTML = skipped > 0
+                ? `<div class="jira-skip-info">&#x26A0; ${skipped} duplicate item${skipped !== 1 ? 's' : ''} already on the board will be skipped.</div>`
+                : '';
+
+            const newColCount = Object.keys(columnMap).filter(s => !existingTitles.has(s.toLowerCase())).length;
+
+            document.getElementById('jiraPreviewContent').innerHTML = `
+                <div class="jira-preview-stats">
+                    <div class="jira-stat">
+                        <div class="jira-stat-number">${totalNew}</div>
+                        <div class="jira-stat-label">Cards to import</div>
+                    </div>
+                    <div class="jira-stat">
+                        <div class="jira-stat-number">${Object.keys(columnMap).length}</div>
+                        <div class="jira-stat-label">Columns mapped</div>
+                    </div>
+                    ${newColCount > 0 ? `<div class="jira-stat"><div class="jira-stat-number" style="color:#a5b4fc">${newColCount}</div><div class="jira-stat-label">New columns</div></div>` : ''}
+                    ${skipped > 0 ? `<div class="jira-stat"><div class="jira-stat-number" style="color:#f87171">${skipped}</div><div class="jira-stat-label">Duplicates skipped</div></div>` : ''}
+                </div>
+                ${skipHTML}
+                <div class="jira-section-label">Column mapping</div>
+                <div class="jira-column-list">${columnRowsHTML}</div>
+            `;
+
+            document.getElementById('jiraImportConfirmBtn').disabled = totalNew === 0;
+            document.getElementById('jiraImportModal').classList.add('active');
+        }
+
+        function hideJiraImportModal() {
+            document.getElementById('jiraImportModal').classList.remove('active');
+            jiraPendingRows = null;
+        }
+
+        function handleJiraModalOverlayClick(event) {
+            if (event.target.classList.contains('modal-overlay')) hideJiraImportModal();
+        }
+
+        function confirmJiraImport() {
+            if (!jiraPendingRows) return;
+            const existingKeys = getExistingJiraKeys();
+
+            jiraPendingRows.forEach(row => {
+                const summary = getJiraField(row, 'Summary');
+                if (!summary) return;
+
+                const issueKey = getJiraField(row, 'Issue key', 'Issue Key');
+                if (issueKey && existingKeys.has(issueKey)) return;
+
+                const status = getJiraField(row, 'Status') || 'No Status';
+                const priority = getJiraField(row, 'Priority');
+                const assignee = getJiraField(row, 'Assignee');
+                const dueDate = getJiraField(row, 'Due date', 'Due Date');
+                const issueType = getJiraField(row, 'Issue Type', 'Issue type');
+                const epicName = getJiraField(row,
+                    'Custom field (Epic Name)', 'Custom field Epic Name',
+                    'Epic Name', 'Epic name');
+
+                let col = boardData.columns.find(c => c.title.toLowerCase() === status.toLowerCase());
+                if (!col) {
+                    col = { id: generateId(), title: status, cards: [] };
+                    boardData.columns.push(col);
+                }
+
+                const label = priorityToLabel(priority);
+                col.cards.push({
+                    id: generateId(),
+                    content: summary,
+                    labels: label ? [label] : [],
+                    link: '',
+                    jira: { key: issueKey, issueType, priority, assignee, dueDate, epicName }
+                });
+
+                if (issueKey) existingKeys.add(issueKey);
+            });
+
+            saveData();
+            renderBoard();
+            hideJiraImportModal();
         }
 
         // Start the app
